@@ -1,0 +1,166 @@
+/* ============================================================
+   AP Tracker – Global Styles & Theme System
+   ============================================================ */
+
+:root {
+  /* ---------- AP Color Tokens (customizable via Settings) ---------- */
+  --color-progression: #cc88ff;
+  --color-useful: #6699ff;
+  --color-filler: #00eeee;
+  --color-trap: #ee4444;
+  --color-player: #ffee00;
+  --color-player-self: #eebb00;
+  --color-location: #00ff7f;
+  --color-entrance: #5599ff;
+  --color-found: #22aa22;
+  --color-hinted: #cc88ff;
+  --color-hard-logic: #ffaa00;
+  --color-out-of-logic: #ee4444;
+
+  /* ---------- Theme tokens ---------- */
+  --bg-primary: #0d141c;
+  --bg-secondary: #121c27;
+  --bg-tertiary: #172535;
+  --bg-input: #1a2a3c;
+  --bg-row-even: #0d141c;
+  --bg-row-odd: #121c27;
+  --bg-hover: #1d3247;
+  --bg-nav: #0a1118;
+  --text-primary: #e6eef8;
+  --text-secondary: #a8bbcf;
+  --text-muted: #74879a;
+  --border-color: #223448;
+  --accent: #4f89c8;
+  --accent-hover: #67a3e3;
+  --danger: #e74c3c;
+  --success: #27ae60;
+  --scrollbar-bg: #121c27;
+  --scrollbar-thumb: #2a3f56;
+}
+
+/* ---------- Light theme overrides ---------- */
+.theme-light {
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8e8e8;
+  --bg-input: #ffffff;
+  --bg-row-even: #f5f5f5;
+  --bg-row-odd: #eaeaea;
+  --bg-hover: #dde4ee;
+  --bg-nav: #d5dbe5;
+  --text-primary: #1a1a2e;
+  --text-secondary: #444466;
+  --text-muted: #888899;
+  --border-color: #c0c0d0;
+  --accent: #3a5a8a;
+  --accent-hover: #4a7aba;
+  --scrollbar-bg: #e8e8e8;
+  --scrollbar-thumb: #c0c0d0;
+}
+
+/* ---------- Reset & Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+/* ---------- Form Elements ---------- */
+input,
+select,
+button,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+button {
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+button:hover {
+  background: var(--accent-hover);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button.danger {
+  background: var(--danger);
+}
+button.danger:hover {
+  background: #c0392b;
+}
+
+/* ---------- Utility Classes ---------- */
+.flex {
+  display: flex;
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-1 {
+  flex: 1;
+}
+.gap-sm {
+  gap: 8px;
+}
+.gap-md {
+  gap: 16px;
+}
