@@ -1,3 +1,12 @@
+<!--
+  ColorPicker.vue — Color input with swatch, hex text field, and preview dot.
+
+  Used on the Settings page for customizing AP color categories.
+
+  Props:
+    label      — Display label for the color field.
+    modelValue — Hex color string (v-model compatible).
+-->
 <template>
   <div class="color-picker-field">
     <label>{{ label }}</label>

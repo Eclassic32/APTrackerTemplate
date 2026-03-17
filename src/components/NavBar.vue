@@ -1,3 +1,10 @@
+<!--
+  NavBar.vue — Top navigation bar shown after connecting.
+
+  Displays tabs for each route and the connected player's slot name.
+  To add a new tab, add an entry to the `tabs` array below AND register
+  the route in src/router/index.ts.
+-->
 <template>
   <nav class="navbar">
     <div class="nav-tabs">
@@ -28,6 +35,7 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 
+/** Add new page tabs here. Each entry needs a matching route in router/index.ts. */
 const tabs = [
   { path: "/text-client", label: "Text Client" },
   { path: "/settings", label: "Settings" },

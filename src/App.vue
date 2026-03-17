@@ -1,3 +1,9 @@
+<!--
+  App.vue — Root application component.
+
+  Shows the ConnectionForm when not connected to a server.
+  Once connected, displays the NavBar and the active route page.
+-->
 <template>
   <ConnectionForm v-if="!isConnected" />
   <template v-else>

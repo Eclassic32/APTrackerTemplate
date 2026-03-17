@@ -30,18 +30,6 @@
         </div>
 
         <div class="field">
-          <label for="game">Game <span class="optional">(optional, leave empty for TextOnly)</span></label>
-          <input
-            id="game"
-            v-model="game"
-            type="text"
-            placeholder=""
-            :disabled="isConnecting"
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="field">
           <label for="password">Password <span class="optional">(optional)</span></label>
           <input
             id="password"
@@ -64,17 +52,25 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * ConnectionForm.vue — Server connection screen.
+ *
+ * Shown before the user connects. Collects server address, slot name, and
+ * optional password. The game name is set via the GAME_NAME constant in
+ * `@/stores/archipelago.ts` and is not user-configurable here.
+ *
+ * Connection fields are persisted to localStorage for convenience.
+ */
 import { ref } from "vue";
 import { connect, isConnecting, connectionError } from "@/stores/archipelago";
 
 const address = ref(localStorage.getItem("serverAddress") || "archipelago.gg:38281");
 const slot = ref(localStorage.getItem("slotName") || "");
-const game = ref(localStorage.getItem("gameName") || "");
 const password = ref(localStorage.getItem("password") || "");
 
 async function handleConnect() {
   if (!slot.value.trim()) return;
-  await connect(address.value, slot.value, game.value, password.value);
+  await connect(address.value, slot.value, password.value);
 }
 </script>
 

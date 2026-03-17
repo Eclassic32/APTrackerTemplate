@@ -1,3 +1,9 @@
+<!--
+  TextClient.vue — Message log and command input panel.
+
+  Displays all server messages (filtered by user preferences), with a send
+  bar for chat and AP commands. Supports command history via up/down arrows.
+-->
 <template>
   <div class="text-client">
     <div class="messages-header">Text Client</div>
@@ -41,7 +47,7 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const commandHistory = ref<string[]>([]);
 const historyIndex = ref(-1);
 
-/** Messages filtered by the user's message type preferences */
+/** Messages filtered by the user's message type visibility preferences. */
 const filteredMessages = computed(() => {
   return messages
     .map((msg, index) => ({ ...msg, index }))

@@ -1,3 +1,9 @@
+<!--
+  Main.vue — Text Client page (default route).
+
+  Side-by-side layout with the HintsTable on the left and TextClient on
+  the right. Stacks vertically on narrow screens (< 900px).
+-->
 <template>
   <div class="text-client-page">
     <HintsTable />

@@ -1,3 +1,10 @@
+<!--
+  SettingsPage.vue — User preferences page.
+
+  Provides controls for theme switching, AP color customization, and
+  message type filtering. All changes are persisted to localStorage
+  automatically via the settings store.
+-->
 <template>
   <div class="settings-page">
     <h2>Settings</h2>

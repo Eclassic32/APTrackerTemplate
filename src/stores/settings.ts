@@ -1,6 +1,17 @@
+/**
+ * settings.ts — User Preferences Store
+ *
+ * Manages theme (dark/light), color customization for AP item/player/location
+ * colors, and message type filters. All settings are persisted to localStorage
+ * and applied as CSS custom properties on the document root.
+ *
+ * The settings object is Vue-reactive: any component can import it and bind
+ * directly (e.g. `settings.theme`, `settings.colors.progression`).
+ */
 import { reactive, watch } from "vue";
 import { ALL_MESSAGE_TYPES, type MessageType } from "@/stores/archipelago";
 
+/** Color values for all AP-specific color categories. */
 export interface APColors {
   progression: string;
   useful: string;
@@ -16,15 +27,17 @@ export interface APColors {
   outOfLogic: string;
 }
 
-/** Which message types are visible in the text client */
+/** Per-message-type visibility toggles for the text client. */
 export type MessageFilters = Record<MessageType, boolean>;
 
+/** Complete settings state shape. */
 export interface SettingsState {
   theme: "dark" | "light";
   colors: APColors;
   messageFilters: MessageFilters;
 }
 
+/** Default color palette. */
 const DEFAULT_COLORS: APColors = {
   progression: "#cc88ff",
   useful: "#6699ff",
@@ -40,6 +53,7 @@ const DEFAULT_COLORS: APColors = {
   outOfLogic: "#ee4444",
 };
 
+/** Returns a MessageFilters object with all types enabled. */
 function defaultMessageFilters(): MessageFilters {
   const filters = {} as MessageFilters;
   for (const t of ALL_MESSAGE_TYPES) {
@@ -48,6 +62,7 @@ function defaultMessageFilters(): MessageFilters {
   return filters;
 }
 
+/** Load settings from localStorage, falling back to defaults for missing keys. */
 function loadSettings(): SettingsState {
   try {
     const raw = localStorage.getItem("ap-tracker-settings");
@@ -60,7 +75,7 @@ function loadSettings(): SettingsState {
       };
     }
   } catch {
-    // ignore
+    /* corrupted data — use defaults */
   }
   return {
     theme: "dark",
@@ -69,20 +84,19 @@ function loadSettings(): SettingsState {
   };
 }
 
+/** Reactive settings state. Import and use directly in any component. */
 export const settings = reactive<SettingsState>(loadSettings());
 
-/** Apply CSS variables and theme class to document */
+/** Sync CSS custom properties and theme class with the current settings. */
 function applySettings() {
   const root = document.documentElement;
 
-  // Theme class
   if (settings.theme === "light") {
     root.classList.add("theme-light");
   } else {
     root.classList.remove("theme-light");
   }
 
-  // Color variables
   const colorVarMap: Record<keyof APColors, string> = {
     progression: "--color-progression",
     useful: "--color-useful",
@@ -103,34 +117,34 @@ function applySettings() {
   }
 }
 
-/** Persist settings to localStorage */
+/** Write current settings to localStorage. */
 function persistSettings() {
   localStorage.setItem("ap-tracker-settings", JSON.stringify(settings));
 }
 
-/** Reset colors to defaults */
+/** Reset all colors to the default palette. */
 export function resetColors() {
   Object.assign(settings.colors, DEFAULT_COLORS);
 }
 
-/** Reset all settings to defaults */
+/** Reset all settings (theme, colors, filters) to defaults. */
 export function resetAllSettings() {
   settings.theme = "dark";
   resetColors();
   resetMessageFilters();
 }
 
-/** Reset message filters to all enabled */
+/** Re-enable all message type filters. */
 export function resetMessageFilters() {
   Object.assign(settings.messageFilters, defaultMessageFilters());
 }
 
-// Watch for changes and apply/persist
+// Automatically apply and persist whenever any setting changes.
 watch(
   () => ({ ...settings, colors: { ...settings.colors } }),
   () => {
     applySettings();
     persistSettings();
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );

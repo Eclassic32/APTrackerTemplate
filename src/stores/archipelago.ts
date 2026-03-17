@@ -1,3 +1,39 @@
+/**
+ * archipelago.ts — Archipelago Connection Store
+ *
+ * Central reactive store that bridges the archipelago.js Client with Vue 3
+ * reactivity. All data from the AP server (hints, items, locations, messages)
+ * is serialized into plain objects and stored in reactive refs/arrays so any
+ * Vue component can import and use them directly.
+ *
+ * ## Why serialize?
+ *
+ * archipelago.js class instances (Hint, Item, Player) use private fields and
+ * getter-only accessors. Vue's reactive proxy cannot observe these. Getters
+ * like `client.items.hints` also return new array copies on every access, so
+ * they are not suitable for direct reactive binding. This store subscribes to
+ * AP events, converts all data to plain objects, and writes them into Vue
+ * reactive state once.
+ *
+ * ## Usage in components / pages
+ *
+ * ```ts
+ * import {
+ *   hints,            // reactive SerializedHint[]
+ *   receivedItems,    // reactive SerializedItem[]
+ *   checkedLocations, // reactive number[] (location IDs the player has checked)
+ *   missingLocations, // reactive number[] (location IDs not yet checked)
+ *   messages,         // reactive SerializedMessage[]
+ *   isConnected,      // Ref<boolean>
+ *   slotName,         // Ref<string>
+ *   selfSlot,         // Ref<number>
+ * } from "@/stores/archipelago";
+ * ```
+ *
+ * All exports are reactive — use them in `computed`, `watch`, or templates
+ * and they will update automatically when the server pushes new data.
+ */
+
 import { reactive, ref, shallowRef } from "vue";
 import {
   Client,
@@ -9,33 +45,53 @@ import {
   type PlayerMessageNode,
   type LocationMessageNode,
   type ColorMessageNode,
-  type TextualMessageNode,
-  type MessageEvents,
   type DataChangeCallback,
 } from "archipelago.js";
 
-/* ================================================================
-   Serialized types – plain objects safe for Vue reactivity.
-   We deep-copy data out of archipelago.js classes to avoid
-   issues with nested proxies / getter-only class instances.
-   ================================================================ */
+/* ==========================================================================
+   TEMPLATE CONFIGURATION
+   ==========================================================================
+   Change GAME_NAME to match your Archipelago game. This value is sent to the
+   server during login and determines which data package is loaded.
 
+   - Set to a game name string (e.g. "A Link to the Past", "Timespinner") to
+     connect as a full tracker for that game.
+   - Set to "" (empty string) to connect in TextOnly mode, which disables
+     game-specific features but still allows chat, hints, and message display.
+   ========================================================================== */
+
+/** The game this tracker is built for. Set to "" for TextOnly mode. */
+export const GAME_NAME = "";
+
+/* ==========================================================================
+   Serialized Types
+   ==========================================================================
+   Plain object interfaces that mirror archipelago.js class data. These are
+   safe for Vue reactivity and can be passed freely between components.
+   ========================================================================== */
+
+/** A single node within a formatted AP message (item, player, location, etc.) */
 export interface SerializedNode {
   type: "item" | "player" | "location" | "color" | "text" | "entrance";
   text: string;
-  /* item nodes */
+  /** Item classification bit flags (only present when type === "item"). */
   itemFlags?: number;
+  /** Resolved item name (only present when type === "item"). */
   itemName?: string;
-  /* player nodes */
+  /** Player slot number (only present when type === "player"). */
   playerSlot?: number;
+  /** Player display alias (only present when type === "player"). */
   playerAlias?: string;
-  /* location nodes */
+  /** Location ID (only present when type === "location"). */
   locationId?: number;
-  /* color nodes */
+  /** AP JSON color name (only present when type === "color"). */
   color?: string;
 }
 
-/** All specific message event types from archipelago.js MessageEvents (excluding the generic "message") */
+/**
+ * Discriminated union of the 15 specific message event types from
+ * archipelago.js (excludes the generic "message" catch-all).
+ */
 export type MessageType =
   | "itemSent"
   | "itemCheated"
@@ -53,7 +109,7 @@ export type MessageType =
   | "collected"
   | "countdown";
 
-/** Human-readable labels for each message type */
+/** Human-readable display labels for each message type. */
 export const MESSAGE_TYPE_LABELS: Record<MessageType, string> = {
   itemSent: "Item Sent",
   itemCheated: "Item Cheated",
@@ -72,71 +128,216 @@ export const MESSAGE_TYPE_LABELS: Record<MessageType, string> = {
   countdown: "Countdown",
 };
 
+/** All message type keys as an array, useful for iteration. */
 export const ALL_MESSAGE_TYPES: MessageType[] = Object.keys(MESSAGE_TYPE_LABELS) as MessageType[];
 
+/** A server message with its formatted node list and originating event type. */
 export interface SerializedMessage {
+  /** Plain text representation of the message. */
   text: string;
+  /** Structured node list for color-coded rendering. */
   nodes: SerializedNode[];
+  /** Which AP event produced this message (for filtering). */
   messageType: MessageType;
 }
 
+/**
+ * A hint for an item in the multiworld.
+ *
+ * Use `itemFlags` with bitwise checks for classification:
+ * - `flags & 0b001` = Progression
+ * - `flags & 0b010` = Useful
+ * - `flags & 0b100` = Trap
+ * - `flags === 0`    = Filler / Normal
+ */
 export interface SerializedHint {
+  /** Display name of the player who receives this item. */
   receivingPlayer: string;
+  /** Slot number of the receiving player. */
   receivingPlayerSlot: number;
+  /** Resolved item name. */
   itemName: string;
+  /** Item classification bit flags (progression/useful/trap/filler). */
   itemFlags: number;
+  /** Display name of the player whose world contains this item. */
   findingPlayer: string;
+  /** Slot number of the finding player. */
   findingPlayerSlot: number;
+  /** Location name where this item can be found. */
   location: string;
+  /** Entrance name for randomized entrances, or "Vanilla" if not applicable. */
   entrance: string;
+  /** Whether this item has already been found/collected. */
   found: boolean;
 }
 
+/**
+ * An item received by the connected player from the multiworld.
+ *
+ * Items appear in chronological order in the `receivedItems` array.
+ */
 export interface SerializedItem {
+  /** Resolved item name. */
   name: string;
+  /** Numeric item ID from the data package. */
   id: number;
+  /** Item classification bit flags. */
   flags: number;
+  /** Display name of the player who sent this item. */
   senderAlias: string;
+  /** Slot number of the sending player. */
   senderSlot: number;
+  /** Display name of the player who received this item (typically self). */
   receiverAlias: string;
+  /** Slot number of the receiving player. */
   receiverSlot: number;
+  /** Location name the sender checked to produce this item. */
   locationName: string;
+  /** Numeric location ID. */
   locationId: number;
 }
 
-/* ================================================================
-   State
-   ================================================================ */
+/* ==========================================================================
+   Reactive State
+   ==========================================================================
+   All exports below are Vue reactive. Import them in any component or page
+   and they will update automatically when the server sends new data.
+   ========================================================================== */
 
+/** Whether the client is currently connected to an AP server. */
 export const isConnected = ref(false);
+
+/** Whether a connection attempt is in progress. */
 export const isConnecting = ref(false);
+
+/** Error message from the most recent failed connection attempt, or "". */
 export const connectionError = ref("");
+
+/** Display alias of the connected player's slot. */
 export const slotName = ref("");
+
+/** Game name reported by the server for the connected slot. */
 export const gameName = ref("");
+
+/** Team number of the connected player. */
 export const teamNumber = ref(0);
+
+/** Slot number of the connected player. Compare with hint player slots to identify "self". */
 export const selfSlot = ref(0);
 
+/**
+ * All server messages, in chronological order.
+ *
+ * Each message includes structured `nodes` for color-coded rendering and a
+ * `messageType` string for filtering. Use the `settings.messageFilters` from
+ * the settings store to filter by type.
+ *
+ * @example
+ * ```vue
+ * <div v-for="msg in messages" :key="i">
+ *   <ColoredText :nodes="msg.nodes" />
+ * </div>
+ * ```
+ */
 export const messages = reactive<SerializedMessage[]>([]);
+
+/**
+ * All known hints for the connected player, updated in real time.
+ *
+ * Hints are replaced atomically on every server update (not appended
+ * incrementally), so the array is always a complete snapshot.
+ *
+ * @example
+ * ```ts
+ * import { hints, selfSlot } from "@/stores/archipelago";
+ * const myHints = computed(() =>
+ *   hints.filter(h => h.receivingPlayerSlot === selfSlot.value)
+ * );
+ * ```
+ */
 export const hints = reactive<SerializedHint[]>([]);
+
+/**
+ * Items the connected player has received, in chronological order.
+ *
+ * New items are appended as they arrive; the array only grows.
+ *
+ * @example
+ * ```ts
+ * import { receivedItems } from "@/stores/archipelago";
+ * const progressionItems = computed(() =>
+ *   receivedItems.filter(item => item.flags & 0b001)
+ * );
+ * ```
+ */
 export const receivedItems = reactive<SerializedItem[]>([]);
+
+/**
+ * Location IDs that the connected player has already checked.
+ *
+ * These are numeric IDs from the AP data package. Use the client's
+ * `package.lookupLocationName()` to resolve them to display names if needed.
+ *
+ * @example
+ * ```ts
+ * import { checkedLocations } from "@/stores/archipelago";
+ * const totalChecked = computed(() => checkedLocations.length);
+ * ```
+ */
 export const checkedLocations = reactive<number[]>([]);
+
+/**
+ * Location IDs that the connected player has NOT yet checked.
+ *
+ * Combined with `checkedLocations`, these form the complete set of
+ * locations for the connected slot.
+ *
+ * @example
+ * ```ts
+ * import { checkedLocations, missingLocations } from "@/stores/archipelago";
+ * const progress = computed(() =>
+ *   `${checkedLocations.length} / ${checkedLocations.length + missingLocations.length}`
+ * );
+ * ```
+ */
 export const missingLocations = reactive<number[]>([]);
 
-/** All item names from the player's game data package (for hint autocomplete) */
+/** Sorted list of all item names from the connected game's data package. */
 export const allItemNames = ref<string[]>([]);
-/** All items that the player hasn't found yet (missing items for hinting) */
+
+/** Item names that have not yet been hinted as found (for hint autocomplete). */
 export const hintableItemNames = ref<string[]>([]);
 
+/** Current hint points available to the player. */
 export const hintPoints = ref(0);
+
+/** Cost in hint points to request a new hint. */
 export const hintCost = ref(0);
 
-/** The raw Client instance – use shallowRef so Vue doesn't deeply proxy it */
+/**
+ * The raw archipelago.js Client instance.
+ *
+ * Wrapped in `shallowRef` to prevent Vue from deeply proxying it (which
+ * would break the library's private fields). Use this for advanced
+ * operations not covered by the serialized state above.
+ *
+ * @example
+ * ```ts
+ * import { client } from "@/stores/archipelago";
+ * // Access the data package directly:
+ * const pkg = client.value?.package.findPackage("MyGame");
+ * ```
+ */
 export const client = shallowRef<Client | null>(null);
 
-/* ================================================================
-   Serialization helpers
-   ================================================================ */
+/* ==========================================================================
+   Serialization Helpers (internal)
+   ==========================================================================
+   These functions convert archipelago.js class instances into plain objects.
+   They are called from event handlers and should not be used directly.
+   ========================================================================== */
 
+/** Convert an AP MessageNode into a plain serialized object. */
 function serializeNode(node: MessageNode): SerializedNode {
   const base: SerializedNode = {
     type: node.type as SerializedNode["type"],
@@ -171,6 +372,12 @@ function serializeNode(node: MessageNode): SerializedNode {
   return base;
 }
 
+/**
+ * Serialize a raw NetworkHint from the AP data storage into a plain object.
+ *
+ * Resolves player names and item/location names via the client's data package
+ * and player manager, bypassing the archipelago.js Hint/Item class chain.
+ */
 function serializeNetworkHint(c: Client, nh: API.NetworkHint): SerializedHint {
   const receiver = c.players.findPlayer(nh.receiving_player);
   const finder = c.players.findPlayer(nh.finding_player);
@@ -203,6 +410,7 @@ function serializeNetworkHint(c: Client, nh: API.NetworkHint): SerializedHint {
   };
 }
 
+/** Convert an archipelago.js Item instance into a plain serialized object. */
 function serializeItem(item: Item): SerializedItem {
   return {
     name: item.name,
@@ -217,26 +425,26 @@ function serializeItem(item: Item): SerializedItem {
   };
 }
 
-/** Cached raw NetworkHint data for re-serialization (e.g., on alias changes) */
+/* ==========================================================================
+   State Update Helpers (internal)
+   ========================================================================== */
+
+/** Cached raw NetworkHint[] for re-serialization on alias changes. */
 let cachedNetworkHints: API.NetworkHint[] = [];
 
-/* ================================================================
-   Refresh helpers – read full state from client getters
-   ================================================================ */
-
+/** Atomically replace the hints array from raw network data. */
 function refreshHintsFromNetwork(c: Client, networkHints: API.NetworkHint[]) {
   cachedNetworkHints = networkHints;
   const serialized = networkHints.map((nh) => serializeNetworkHint(c, nh));
-  // Atomic replacement: single splice triggers one reactive update
   hints.splice(0, hints.length, ...serialized);
   updateHintableItems();
 }
 
-/** Push a new message from a typed event directly into the reactive store */
+/** Append a new message to the reactive messages array. */
 function pushMessage(
   messageType: MessageType,
   text: string,
-  nodes: MessageNode[]
+  nodes: MessageNode[],
 ) {
   messages.push({
     text,
@@ -245,14 +453,15 @@ function pushMessage(
   });
 }
 
+/** Append any newly received items (incremental — only adds items beyond current length). */
 function refreshReceivedItems(c: Client) {
   const rawItems = c.items.received;
-  // Only add new items
   for (let i = receivedItems.length; i < rawItems.length; i++) {
     receivedItems.push(serializeItem(rawItems[i]));
   }
 }
 
+/** Replace checked/missing location arrays with current server state. */
 function refreshLocations(c: Client) {
   const checked = c.room.checkedLocations;
   const missing = c.room.missingLocations;
@@ -262,11 +471,13 @@ function refreshLocations(c: Client) {
   missingLocations.push(...missing);
 }
 
+/** Update hint point counters from the server. */
 function refreshHintPoints(c: Client) {
   hintPoints.value = c.room.hintPoints;
   hintCost.value = c.room.hintCost;
 }
 
+/** Load all item names from the game's data package for hint autocomplete. */
 function loadItemNames(c: Client) {
   const game = c.game;
   if (!game) return;
@@ -279,26 +490,29 @@ function loadItemNames(c: Client) {
   }
 }
 
+/** Recompute which items are available for hinting (excludes found hints). */
 function updateHintableItems() {
-  // All items minus those already fully hinted as found
   const foundItems = new Set(
-    hints.filter((h) => h.found).map((h) => h.itemName)
+    hints.filter((h) => h.found).map((h) => h.itemName),
   );
   hintableItemNames.value = allItemNames.value.filter(
-    (name) => !foundItems.has(name)
+    (name) => !foundItems.has(name),
   );
 }
 
-/* ================================================================
+/* ==========================================================================
    Connect / Disconnect
-   ================================================================ */
+   ========================================================================== */
 
-export async function connect(
-  address: string,
-  slot: string,
-  game: string,
-  password: string
-) {
+/**
+ * Connect to an Archipelago server.
+ *
+ * Registers all event handlers before calling `client.login()` so that
+ * events fired during the connection handshake are never missed. After
+ * login, subscribes directly to the server's hint data storage key for
+ * real-time hint updates.
+ */
+export async function connect(address: string, slot: string, password: string) {
   if (client.value) {
     disconnect();
   }
@@ -309,11 +523,16 @@ export async function connect(
   const c = new Client();
 
   try {
-    let url = address.trim();
-    const tags = game.trim() ? ["Tracker"] : ["Tracker", "TextOnly"];
+    const url = address.trim();
+    const game = GAME_NAME.trim() || undefined;
+    const tags = game ? ["Tracker"] : ["Tracker", "TextOnly"];
 
-    // Wire up message events BEFORE login so we capture all messages
-    // including those generated during the connection handshake.
+    /*
+     * Event handlers are registered BEFORE login() so we capture all
+     * messages and state changes that occur during the handshake.
+     */
+
+    // -- Message events (one handler per AP message type) --
     c.messages.on("itemSent", (text, _item, nodes) => {
       pushMessage("itemSent", text, nodes);
     });
@@ -360,62 +579,47 @@ export async function connect(
       pushMessage("countdown", text, nodes);
     });
 
-    // Wire up ALL event handlers BEFORE login so we never miss events
-    // that fire during or immediately after the connection handshake
-    // (e.g., hintsInitialized fires asynchronously after connected packet).
-
-    // Items received
+    // -- Item events --
     c.items.on("itemsReceived", () => {
       refreshReceivedItems(c);
     });
 
-    // Hints - use callback data directly instead of re-reading the getter,
-    // because events can fire mid-iteration of the internal hints array.
-    // BYPASSED: ItemsManager hint events have race conditions (hintsInitialized
-    // and #receivedHint can overlap, and the index-based comparison produces
-    // wrong Hint objects). Instead, we subscribe directly to the data storage
-    // key and serialize from raw NetworkHint data.
-
-    // We'll set up the direct storage subscription after login succeeds,
-    // since we need team/slot to construct the key.
-
-    // Locations
+    // -- Location events --
     c.room.on("locationsChecked", () => {
       refreshLocations(c);
     });
 
-    // Hint points
+    // -- Hint point events --
     c.room.on("hintPointsUpdated", () => {
       refreshHintPoints(c);
     });
-
     c.room.on("hintCostUpdated", () => {
       refreshHintPoints(c);
     });
 
-    // Player alias changes
+    // -- Player alias changes (re-serialize hints with updated names) --
     c.players.on("aliasUpdated", () => {
       slotName.value = c.players.self.alias;
-      // Re-serialize hints with updated player aliases using cached raw data
       if (cachedNetworkHints.length > 0) {
         refreshHintsFromNetwork(c, cachedNetworkHints);
       }
     });
 
-    // Socket disconnect
+    // -- Socket disconnect --
     c.socket.on("disconnected", () => {
       isConnected.value = false;
       connectionError.value = "Disconnected from server.";
     });
 
-    await c.login(url, slot.trim(), game.trim() || undefined, {
+    // -- Perform login --
+    await c.login(url, slot.trim(), game, {
       password: password || "",
       tags,
       items: itemsHandlingFlags.all,
       slotData: true,
     });
 
-    // Connection successful
+    // -- Store connection metadata --
     client.value = c;
     isConnected.value = true;
     slotName.value = c.players.self.alias;
@@ -423,20 +627,21 @@ export async function connect(
     teamNumber.value = c.players.self.team;
     selfSlot.value = c.players.self.slot;
 
+    // Persist connection fields for auto-fill on next visit
     localStorage.setItem("serverAddress", address);
     localStorage.setItem("slotName", slot);
-    localStorage.setItem("gameName", game);
     localStorage.setItem("password", password);
 
-    // Load any state that may already be available after login
+    // -- Load initial state --
     refreshReceivedItems(c);
     refreshLocations(c);
     refreshHintPoints(c);
     loadItemNames(c);
 
-    // Subscribe directly to the hints data storage key, bypassing
-    // ItemsManager's buggy hint event system entirely. This gives us
-    // the raw NetworkHint[] on every update, which we serialize ourselves.
+    // -- Subscribe to hint data storage --
+    // We subscribe directly to the AP data storage key rather than using
+    // the ItemsManager's hint events, which provides a complete snapshot
+    // of all hints on every update and avoids incremental sync issues.
     const hintKey = `_read_hints_${c.players.self.team}_${c.players.self.slot}`;
     const hintCallback: DataChangeCallback = (_key, value) => {
       const networkHints = value as API.NetworkHint[];
@@ -444,31 +649,34 @@ export async function connect(
         refreshHintsFromNetwork(c, networkHints);
       }
     };
-    // notify() registers the callback for future SetReply packets AND
-    // fetches the current value. The .then() handles initial population.
     c.storage.notify([hintKey], hintCallback).then((data) => {
-      const networkHints = (data as Record<string, unknown>)[hintKey] as API.NetworkHint[] | undefined;
+      const networkHints = (data as Record<string, unknown>)[hintKey] as
+        | API.NetworkHint[]
+        | undefined;
       if (Array.isArray(networkHints)) {
         refreshHintsFromNetwork(c, networkHints);
       }
     });
-  } catch (err: any) {
-    connectionError.value = err?.message || "Failed to connect";
+  } catch (err: unknown) {
+    connectionError.value =
+      err instanceof Error ? err.message : "Failed to connect";
     client.value = null;
   } finally {
     isConnecting.value = false;
   }
 }
 
+/** Disconnect from the server and reset all reactive state. */
 export function disconnect() {
   const c = client.value;
   if (c) {
     try {
       c.socket.disconnect();
     } catch {
-      // ignore
+      /* already disconnected */
     }
   }
+
   client.value = null;
   isConnected.value = false;
   slotName.value = "";
@@ -485,6 +693,7 @@ export function disconnect() {
   cachedNetworkHints = [];
 }
 
+/** Send a chat message or command (e.g. "!hint ItemName") to the server. */
 export async function sendMessage(text: string) {
   const c = client.value;
   if (!c || !text.trim()) return;

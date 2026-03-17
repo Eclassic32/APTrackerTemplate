@@ -1,3 +1,10 @@
+<!--
+  HintsTable.vue — Sortable hints table with autocomplete hint input.
+
+  Displays all hints from the archipelago store in a table with sortable
+  columns. Includes an autocomplete input bar at the bottom for requesting
+  new hints via the !hint command.
+-->
 <template>
   <div class="hints-panel">
     <div class="hints-header">Hints</div>
@@ -121,9 +128,7 @@ import {
 import type { SerializedHint } from "@/stores/archipelago";
 import { itemFlagColor, classificationLabel } from "@/utils/colors";
 
-/* ----------------------------------------------------------------
-   Column sorting
-   ---------------------------------------------------------------- */
+/* ---- Column Sorting ---- */
 
 type SortKey =
   | "receivingPlayer"
@@ -155,8 +160,8 @@ function toggleSort(key: SortKey) {
 }
 
 /**
- * Status sort priority (ascending): Found first, then by item classification.
- * Found=0, Progression=1, Useful=2, Normal/Filler=3, Trap=4
+ * Sort priority for hint status (ascending):
+ * Found first, then by item classification importance.
  */
 function statusSortOrder(hint: SerializedHint): number {
   if (hint.found) return 0;
@@ -205,9 +210,7 @@ const sortedHints = computed<IndexedHint[]>(() => {
   return arr;
 });
 
-/* ----------------------------------------------------------------
-   Status display helpers
-   ---------------------------------------------------------------- */
+/* ---- Status Display ---- */
 
 function itemColor(flags: number): string {
   return itemFlagColor(flags);
@@ -223,9 +226,7 @@ function statusText(hint: SerializedHint): string {
   return classificationLabel(hint.itemFlags);
 }
 
-/* ----------------------------------------------------------------
-   Autocomplete
-   ---------------------------------------------------------------- */
+/* ---- Hint Autocomplete ---- */
 
 const hintQuery = ref("");
 const showSuggestions = ref(false);
@@ -275,7 +276,7 @@ async function confirmHint() {
   hintQuery.value = "";
 }
 
-/* Close suggestions on outside click */
+/* Close suggestions when clicking outside the autocomplete container. */
 function onDocumentClick(e: MouseEvent) {
   if (
     autocompleteContainer.value &&

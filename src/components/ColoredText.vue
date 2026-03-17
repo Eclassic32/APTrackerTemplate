@@ -1,3 +1,12 @@
+<!--
+  ColoredText.vue — Renders a list of SerializedNode objects with AP color styling.
+
+  Used to display server messages with per-node formatting (item colors,
+  player highlights, location colors, etc.). Pass nodes from a SerializedMessage.
+
+  Usage:
+    <ColoredText :nodes="message.nodes" />
+-->
 <template>
   <span
     v-for="(node, i) in nodes"

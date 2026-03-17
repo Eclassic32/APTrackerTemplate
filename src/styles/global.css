@@ -1,9 +1,15 @@
-/* ============================================================
-   AP Tracker – Global Styles & Theme System
-   ============================================================ */
+/*
+ * global.css — Base Styles & Theme System
+ *
+ * Defines CSS custom properties for colors (AP-specific and UI theme),
+ * a dark/light theme system, global resets, and shared form element styles.
+ *
+ * AP color tokens (--color-*) are overridden at runtime by the settings
+ * store when the user customizes colors on the Settings page.
+ */
 
 :root {
-  /* ---------- AP Color Tokens (customizable via Settings) ---------- */
+  /* -- AP color tokens (defaults; overridden by settings store) -- */
   --color-progression: #cc88ff;
   --color-useful: #6699ff;
   --color-filler: #00eeee;
@@ -17,7 +23,7 @@
   --color-hard-logic: #ffaa00;
   --color-out-of-logic: #ee4444;
 
-  /* ---------- Theme tokens ---------- */
+  /* -- Dark theme (default) -- */
   --bg-primary: #0d141c;
   --bg-secondary: #121c27;
   --bg-tertiary: #172535;
@@ -38,7 +44,7 @@
   --scrollbar-thumb: #2a3f56;
 }
 
-/* ---------- Light theme overrides ---------- */
+/* -- Light theme overrides -- */
 .theme-light {
   --bg-primary: #f5f5f5;
   --bg-secondary: #ffffff;
@@ -58,7 +64,7 @@
   --scrollbar-thumb: #c0c0d0;
 }
 
-/* ---------- Reset & Base ---------- */
+/* -- Reset & Base -- */
 *,
 *::before,
 *::after {
@@ -91,7 +97,7 @@ a:hover {
   color: var(--accent-hover);
 }
 
-/* ---------- Scrollbar ---------- */
+/* -- Scrollbar -- */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -104,7 +110,7 @@ a:hover {
   border-radius: 4px;
 }
 
-/* ---------- Form Elements ---------- */
+/* -- Form Elements -- */
 input,
 select,
 button,
@@ -148,7 +154,7 @@ button.danger:hover {
   background: #c0392b;
 }
 
-/* ---------- Utility Classes ---------- */
+/* -- Utility Classes -- */
 .flex {
   display: flex;
 }
