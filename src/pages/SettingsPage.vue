@@ -64,18 +64,12 @@
       <h3>Message Filters</h3>
       <p class="filter-description">Choose which message types appear in the Text Client.</p>
       <div class="filter-grid">
-        <label
+        <SettingsCheckbox
           v-for="msgType in ALL_MESSAGE_TYPES"
           :key="msgType"
-          class="filter-label"
-        >
-          <input
-            type="checkbox"
-            :checked="settings.messageFilters[msgType]"
-            @change="settings.messageFilters[msgType] = ($event.target as HTMLInputElement).checked"
-          />
-          {{ MESSAGE_TYPE_LABELS[msgType] }}
-        </label>
+          class="filler-label"
+          :label="MESSAGE_TYPE_LABELS[msgType]"
+          v-model="settings.messageFilters[msgType]" />
       </div>
       <button class="filter-reset" @click="resetMessageFilters">Reset Filters</button>
     </section>
@@ -93,6 +87,7 @@
 import { settings, resetColors, resetAllSettings, resetMessageFilters } from "@/stores/settings";
 import { ALL_MESSAGE_TYPES, MESSAGE_TYPE_LABELS } from "@/stores/archipelago";
 import ColorPicker from "@/components/ColorPicker.vue";
+import SettingsCheckbox from "@/components/SettingsCheckbox.vue";
 </script>
 
 <style scoped>
