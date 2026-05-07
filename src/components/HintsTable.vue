@@ -16,6 +16,7 @@
               v-for="col in columns"
               :key="col.key"
               class="sortable-th"
+              :class="col.key + '-cell'"
               @click="toggleSort(col.key)"
             >
               {{ col.label }}
@@ -31,7 +32,10 @@
             :key="hint._idx"
             :class="i % 2 === 0 ? 'row-even' : 'row-odd'"
           >
-            <td>
+            <td class="copyBtn-cell">
+              <span title="Copy" class="copy-btn" @click="copyHintText(hint)"></span>
+            </td>
+            <td class="receivingPlayer-cell">
               <span
                 :style="{
                   color:
@@ -41,12 +45,12 @@
                 }"
               >{{ hint.receivingPlayer }}</span>
             </td>
-            <td>
+            <td class="itemName-cell">
               <span :style="{ color: itemColor(hint.itemFlags) }">
                 {{ hint.itemName }}
               </span>
             </td>
-            <td>
+            <td class="findingPlayer-cell">
               <span
                 :style="{
                   color:
@@ -56,24 +60,24 @@
                 }"
               >{{ hint.findingPlayer }}</span>
             </td>
-            <td>
+            <td class="location-cell">
               <span style="color: var(--color-location)">
                 {{ hint.location }}
               </span>
             </td>
-            <td>
+            <td class="entrance-cell">
               <span style="color: var(--color-entrance)">
                 {{ hint.entrance }}
               </span>
             </td>
-            <td>
-              <span :style="{ color: statusColor(hint) }">
-                {{ statusText(hint) }}
+            <td class="itemClass-cell">
+              <span :style="{ color: itemClassColor(hint) }">
+                {{ itemClassText(hint) }}
               </span>
             </td>
           </tr>
           <tr v-if="hints.length === 0">
-            <td colspan="6" class="empty-row">No hints yet.</td>
+            <td colspan="7" class="empty-row">No hints yet.</td>
           </tr>
         </tbody>
       </table>
@@ -130,24 +134,25 @@ import { itemFlagColor, classificationLabel } from "@/utils/colors";
 
 /* ---- Column Sorting ---- */
 
-type SortKey =
+type SortKey = 'copyBtn'
   | "receivingPlayer"
   | "itemName"
   | "findingPlayer"
   | "location"
   | "entrance"
-  | "status";
+  | "itemClass";
 
 const columns: { key: SortKey; label: string }[] = [
+  { key: "copyBtn", label: "" },
   { key: "receivingPlayer", label: "Receiving Player" },
   { key: "itemName", label: "Item Name" },
   { key: "findingPlayer", label: "Finding Player" },
   { key: "location", label: "Location" },
   { key: "entrance", label: "Entrance" },
-  { key: "status", label: "Status" },
+  { key: "itemClass", label: "Class" },
 ];
 
-const sortKey = ref<SortKey>("status");
+const sortKey = ref<SortKey>("itemClass");
 const sortAsc = ref(true);
 
 function toggleSort(key: SortKey) {
@@ -160,10 +165,10 @@ function toggleSort(key: SortKey) {
 }
 
 /**
- * Sort priority for hint status (ascending):
+ * Sort priority for hint itemClass (ascending):
  * Found first, then by item classification importance.
  */
-function statusSortOrder(hint: SerializedHint): number {
+function itemClassSortOrder(hint: SerializedHint): number {
   if (hint.found) return 0;
   const flags = hint.itemFlags;
   if (flags & 0b001) return 1; // Progression
@@ -184,8 +189,9 @@ function getSortValue(hint: SerializedHint, key: SortKey): string | number {
       return hint.location.toLowerCase();
     case "entrance":
       return hint.entrance.toLowerCase();
-    case "status":
-      return statusSortOrder(hint);
+    case "itemClass":
+    case "copyBtn":
+      return itemClassSortOrder(hint);
   }
 }
 
@@ -210,18 +216,18 @@ const sortedHints = computed<IndexedHint[]>(() => {
   return arr;
 });
 
-/* ---- Status Display ---- */
+/* ---- Item Class Display ---- */
 
 function itemColor(flags: number): string {
   return itemFlagColor(flags);
 }
 
-function statusColor(hint: SerializedHint): string {
+function itemClassColor(hint: SerializedHint): string {
   if (hint.found) return "var(--color-found)";
   return itemFlagColor(hint.itemFlags);
 }
 
-function statusText(hint: SerializedHint): string {
+function itemClassText(hint: SerializedHint): string {
   if (hint.found) return "Found";
   return classificationLabel(hint.itemFlags);
 }
@@ -293,6 +299,12 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener("click", onDocumentClick, true);
 });
+
+function copyHintText(hint: SerializedHint) {
+  const text = `${hint.receivingPlayer}'s ${hint.itemName} at ${hint.location} in ${hint.findingPlayer}'s world`
+                 + (hint.entrance && hint.entrance != 'Vanilla' ? ` (${hint.entrance})` : '');
+  navigator.clipboard.writeText(text);
+}
 </script>
 
 <style scoped>
@@ -359,6 +371,28 @@ onUnmounted(() => {
 .hints-table tbody td {
   padding: 4px 10px;
   white-space: nowrap;
+}
+
+.copyBtn-cell {
+  padding: 0 4px !important;
+  cursor: pointer;
+}
+.receivingPlayer-cell {
+  padding-left: 4px !important;
+}
+
+.copyBtn-cell .copy-btn {
+  display: inline-block;
+  vertical-align: center;
+  width: 16px;
+  height: 16px;
+  background-color: var(--text-secondary);
+  -webkit-mask: url('/assets/copy-icon.svg') no-repeat center / contain;
+  mask: url('/assets/copy-icon.svg') no-repeat center / contain;
+}
+
+.copyBtn-cell .copy-btn:hover {
+  background-color: var(--text-primary);
 }
 
 .row-even {
