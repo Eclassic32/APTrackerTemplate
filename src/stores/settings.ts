@@ -21,6 +21,7 @@ export interface APColors {
   playerSelf: string;
   location: string;
   entrance: string;
+  inLogic: string;
   found: string;
   hinted: string;
   hardLogic: string;
@@ -30,8 +31,25 @@ export interface APColors {
 /** Per-message-type visibility toggles for the text client. */
 export type MessageFilters = Record<MessageType, boolean>;
 
+export type LogicFilter = {
+  inLogic: boolean;
+  found: boolean;
+  hinted: boolean;
+  outOfLogic: boolean;
+  hardLogic: boolean;
+}
+
+export type LogicSort = {
+  inLogic: number;
+  found: number;
+  hinted: number;
+  outOfLogic: number;
+  hardLogic: number;
+}
+
 /** Complete settings state shape. */
 export interface SettingsState {
+  debug: boolean; 
   theme: "dark" | "light";
   colors: APColors;
   messageFilters: MessageFilters;
@@ -47,6 +65,7 @@ const DEFAULT_COLORS: APColors = {
   playerSelf: "#eebb00",
   location: "#00ff7f",
   entrance: "#5599ff",
+  inLogic: "",
   found: "#22aa22",
   hinted: "#cc88ff",
   hardLogic: "#ffaa00",
@@ -69,6 +88,7 @@ function loadSettings(): SettingsState {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
+        debug: window.location.search.includes("debug") ?? false,
         theme: parsed.theme ?? "dark",
         colors: { ...DEFAULT_COLORS, ...(parsed.colors ?? {}) },
         messageFilters: { ...defaultMessageFilters(), ...(parsed.messageFilters ?? {}) },
@@ -78,6 +98,7 @@ function loadSettings(): SettingsState {
     /* corrupted data — use defaults */
   }
   return {
+    debug: false,
     theme: "dark",
     colors: { ...DEFAULT_COLORS },
     messageFilters: defaultMessageFilters(),
@@ -106,6 +127,7 @@ function applySettings() {
     playerSelf: "--color-player-self",
     location: "--color-location",
     entrance: "--color-entrance",
+    inLogic: "--color-in-logic",
     found: "--color-found",
     hinted: "--color-hinted",
     hardLogic: "--color-hard-logic",
