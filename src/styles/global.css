@@ -161,13 +161,19 @@ button.danger:hover {
 .flex-col {
   flex-direction: column;
 }
+.flex-row {
+  flex-direction: row;
+}
 .flex-1 {
   flex: 1;
 }
-.gap-sm {
+.gap-8 {
   gap: 8px;
 }
-.gap-md {
+.gap-12 {
+  gap: 12px;
+}
+.gap-16 {
   gap: 16px;
 }
 

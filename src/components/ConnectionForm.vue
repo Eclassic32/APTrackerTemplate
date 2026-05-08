@@ -56,7 +56,7 @@
           description="Button description"
           link="https://example.com"
         />
-        <div class="flex-h socials">
+        <div class="flex flex-row gap-12 socials">
           <a v-for="link in socials" :href="link.url" target="_blank" class="card card-hover social-link">{{ link.name }}</a>
         </div>
       </div>
@@ -168,12 +168,6 @@ async function handleConnect() {
   flex-direction: column;
   gap: 1rem;
   width: 350px;
-}
-
-.flex-h {
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
 }
 
 .social-link {
