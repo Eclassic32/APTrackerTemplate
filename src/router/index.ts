@@ -9,6 +9,10 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import MainPage from "@/pages/Main.vue";
 import SettingsPage from "@/pages/SettingsPage.vue";
+import CellsPage from "@/pages/CellsPage.vue";
+import GroupedCellsPage from "@/pages/GroupedCellsPage.vue";
+import MapPage from "@/pages/MapPage.vue";
+import ProgressBarPage from "@/pages/ProgressBarPage.vue";
 
 const routes = [
   {
@@ -24,6 +28,26 @@ const routes = [
     path: "/settings",
     name: "Settings",
     component: SettingsPage,
+  },
+  {
+    path: "/cells",
+    name: "Cells",
+    component: CellsPage,
+  },
+  {
+    path: "/grouped-cells",
+    name: "GroupedCells",
+    component: GroupedCellsPage,
+  },
+  {
+    path: "/map",
+    name: "Map",
+    component: MapPage,
+  },
+  {
+    path: "/progress-bar",
+    name: "ProgressBar",
+    component: ProgressBarPage,
   },
 ];
 

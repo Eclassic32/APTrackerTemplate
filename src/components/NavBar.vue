@@ -37,6 +37,10 @@ const router = useRouter();
 
 /** Add new page tabs here. Each entry needs a matching route in router/index.ts. */
 const tabs = [
+  { path: "/cells", label: "Cells" },
+  { path: "/grouped-cells", label: "Grouped Cells" },
+  { path: "/map", label: "Map" },
+  { path: "/progress-bar", label: "Progress Bar" },
   { path: "/text-client", label: "Text Client" },
   { path: "/settings", label: "Settings" },
 ];
