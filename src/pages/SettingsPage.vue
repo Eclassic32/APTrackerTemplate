@@ -52,6 +52,7 @@
     <section class="settings-section">
       <h3>Tracker Colors</h3>
       <div class="color-grid">
+        <ColorPicker label="In Logic" v-model="settings.colors.inLogic" />
         <ColorPicker label="Found" v-model="settings.colors.found" />
         <ColorPicker label="Hinted" v-model="settings.colors.hinted" />
         <ColorPicker label="Hard Logic" v-model="settings.colors.hardLogic" />
