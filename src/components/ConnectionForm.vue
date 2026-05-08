@@ -1,7 +1,7 @@
 <template>
   <div class="connection-form">
     <div class="connection-section">
-      <div class="connection-card">
+      <div class="card connection-card">
         <h1 class="title">Archipelago Tracker</h1>
         <p class="subtitle">Connect to an Archipelago server</p>
 
@@ -57,7 +57,7 @@
           link="https://example.com"
         />
         <div class="flex-h socials">
-          <a v-for="link in socials" :href="link.url" target="_blank" class="social-link">{{ link.name }}</a>
+          <a v-for="link in socials" :href="link.url" target="_blank" class="card card-hover social-link">{{ link.name }}</a>
         </div>
       </div>
     </div>
@@ -111,9 +111,6 @@ async function handleConnect() {
 }
 
 .connection-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
   padding: 40px;
   width: 100%;
   max-width: 420px;
@@ -180,19 +177,9 @@ async function handleConnect() {
 }
 
 .social-link {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
   padding: 5px 8px;
-  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   width: 100%;
   text-align: center;
-}
-
-.social-link:hover {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 </style>
